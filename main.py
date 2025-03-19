@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from myenv import *
-
+from DDPG import *
 def main():
     Map_name = 'Map1'
     env_t = 0
@@ -13,6 +13,8 @@ def main():
     render = Render(uav_num, env.state, buildings, map_w, map_h, map_z, uav_r, env.position_pool, match_pairs)
     # 初始化MVController模块
     mvcontroller = MvController(map_w, map_h, map_z, buildings_location)
+    # 初始化Agent
+    agent = DDPG(state_dim, hidden_dim, action_dim, action_bound, sigma, actor_lr, critic_lr, tau, gamma, device)
     # 开始
     actions = [[0, 0, 0, 0] for _ in range(uav_num)]
     flag = [False] * uav_num

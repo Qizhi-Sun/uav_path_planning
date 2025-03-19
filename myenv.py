@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import math
 from building_data import *
-from WH_test import *
+from UAV_and_Final import *
 from matplotlib.image import imread
 import matplotlib.style as mplstyle
 
