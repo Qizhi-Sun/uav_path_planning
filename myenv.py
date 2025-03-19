@@ -200,9 +200,6 @@ class MvController:
         volatility = 0.02
         x_diff = aim[0] - uav[0]
         y_diff = aim[1] - uav[1]
-        print(f"aim: {aim}, length of aim: {len(aim)}")
-        print(f"uav: {uav}, length of uav: {len(uav)}")
-        z_diff = aim[2] - uav[2]
         z_diff = aim[2] - uav[2]
         distance = np.sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2)
         if abs(x_diff) < 0.1:

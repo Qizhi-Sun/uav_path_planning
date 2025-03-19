@@ -1,7 +1,20 @@
 import matplotlib.pyplot as plt
 from myenv import *
-from DDPG import *
+from  PPO import *
+from rl_utils import *
 def main():
+    lamda = 0.95
+    gamma = 0.98
+    epochs = 10
+    eps = 0.2
+    device = torch.device("cuda")
+    actor_lr = 1e-3
+    critic_lr = 1e-3
+    hidden_num = 128
+    torch.manual_seed(0)
+    state_dim = 6
+    action_dim = 3
+
     Map_name = 'Map1'
     env_t = 0
     # 初始化MAP模块
@@ -14,35 +27,15 @@ def main():
     # 初始化MVController模块
     mvcontroller = MvController(map_w, map_h, map_z, buildings_location)
     # 初始化Agent
-    agent = DDPG(state_dim, hidden_dim, action_dim, action_bound, sigma, actor_lr, critic_lr, tau, gamma, device)
+    agent = PPO(lamda, gamma, state_dim, action_dim, hidden_num, eps, actor_lr, critic_lr, epochs, device)
     # 开始
-    actions = [[0, 0, 0, 0] for _ in range(uav_num)]
-    flag = [False] * uav_num
-    done = False
-    while not done:
-        for pair in match_pairs:
-            index = pair[0]
-            uav_state = env.state[index][:3]
-            aim = pair[2]
-            vx, vy, vz = mvcontroller.Move_to(uav_state, aim)
-            if mvcontroller.Is_arrive(uav_state, aim):
-                if not flag[index]:
-                    flag[index] = True
-                    point = render.AimsPoint[index].pop(0)
-                    point.remove()
-                    # render.ax.scatter(uav_state[0], uav_state[1], uav_state[2], color='red', s=50)
-            if mvcontroller.Is_outside_map(uav_state, [vx, vy, vz]):
-                vx, vy, vz = 0, 0, 0
-            if mvcontroller.Will_enter_buildings(uav_state, [vx, vy, vz], uav_r):
-                vx, vy, vz = mvcontroller.Move_up()
-            actions[index] = [vx, vy, vz, 0]
-        obs, reward, done, truncated,info = env.step(actions, env_t)
-        env.recorder(env_t)
-        render.render3D()
-        plt.pause(0.01)
-        env_t += 1
-        if done:
-            env.reset()
+    return_list = rl_utils.train_on_policy_agent(env, agent, 500)
+    episodes_list = list(range(len(return_list)))
+    plt.plot(episodes_list, return_list)
+    plt.xlabel('Episodes')
+    plt.ylabel('Returns')
+    plt.title('PPO on {}'.format(env_name))
+    plt.show()
 
 
 if __name__ == "__main__":

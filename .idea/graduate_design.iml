@@ -5,5 +5,7 @@
     <orderEntry type="jdk" jdkName="test" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="pythonProject8" />
+    <orderEntry type="module" module-name="UAVGym" />
+    <orderEntry type="module" module-name="Multi-UAVs path planning" />
   </component>
 </module>

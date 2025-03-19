@@ -23,24 +23,25 @@ class ValueNet(nn.Module):
 
 
 class PolicyNet(nn.Module):
-    def __init__(self, state_dim, action_dim, hidden_dim):
+    def __init__(self, state_dim, action_dim, hidden_dim, action_bound):
         super(PolicyNet, self).__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, action_dim)
+        self.action_bound = action_bound
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        return F.softmax(self.fc2(x), dim=1)
+        return torch.tanh(self.fc2(x)) * self.action_bound
 
 
 class PPO:
-    def __init__(self, lamda, gamma, state_dim, action_dim, hidden_dim, eps, actor_lr, critic_lr, epochs, device):
+    def __init__(self, lamda, gamma, state_dim, action_dim, hidden_dim, eps, actor_lr, critic_lr, epochs, device, action_bound):
         self.lamda = lamda
         self.gamma = gamma
         self.epochs = epochs
         self.eps = eps
         self.device = device
-        self.actor = PolicyNet(state_dim, action_dim, hidden_dim).to(device)
+        self.actor = PolicyNet(state_dim, action_dim, hidden_dim, action_bound).to(device)
         self.critic = ValueNet(state_dim, hidden_dim).to(device)
         self.actor_opt = opt.Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_opt = opt.Adam(self.critic.parameters(), lr=critic_lr)
@@ -78,27 +79,5 @@ class PPO:
             self.critic_opt.step()
 
 
-if __name__ == "__main__":
-    lamda = 0.95
-    gamma = 0.98
-    epochs = 10
-    eps = 0.2
-    device = torch.device("cuda")
-    actor_lr = 1e-3
-    critic_lr = 1e-3
-    hidden_num = 128
-    env_name = "CartPole-v0"
-    env = gym.make(env_name)
-    torch.manual_seed(0)
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.n
-    agent = PPO(lamda, gamma, state_dim, action_dim, hidden_num, eps, actor_lr, critic_lr, epochs, device)
-    return_list = rl_utils.train_on_policy_agent(env, agent, 500)
 
-    episodes_list = list(range(len(return_list)))
-    plt.plot(episodes_list, return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.title('PPO on {}'.format(env_name))
-    plt.show()
 
