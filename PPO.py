@@ -48,10 +48,8 @@ class PPO:
 
     def take_action(self, state):
         state = torch.tensor([state], dtype=torch.float).to(device=self.device)
-        action_probs = self.actor(state)
-        action_dist = torch.distributions.Categorical(action_probs)
-        action = action_dist.sample()
-        return action.item()
+        action = self.actor(state)
+        return action.detach().cpu().numpy().squeeze(0)
 
     def update(self, transition_dict):
         states = torch.tensor(transition_dict["states"], dtype=torch.float).to(self.device)

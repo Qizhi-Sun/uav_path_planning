@@ -8,6 +8,7 @@ def main():
     epochs = 10
     eps = 0.2
     device = torch.device("cuda")
+    action_bound = 0.7
     actor_lr = 1e-3
     critic_lr = 1e-3
     hidden_num = 128
@@ -27,14 +28,14 @@ def main():
     # 初始化MVController模块
     mvcontroller = MvController(map_w, map_h, map_z, buildings_location)
     # 初始化Agent
-    agent = PPO(lamda, gamma, state_dim, action_dim, hidden_num, eps, actor_lr, critic_lr, epochs, device)
+    agent = PPO(lamda, gamma, state_dim, action_dim, hidden_num, eps, actor_lr, critic_lr, epochs, device, action_bound)
     # 开始
     return_list = rl_utils.train_on_policy_agent(env, agent, 500)
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list)
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
-    plt.title('PPO on {}'.format(env_name))
+    plt.title('PPO on {}'.format(Map_name))
     plt.show()
 
 

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import math
 from building_data import *
-from UAV_and_Final import *
+from UAV_and_Final_data import *
 from matplotlib.image import imread
 import matplotlib.style as mplstyle
 
@@ -31,10 +31,10 @@ class UAVEnv(gym.Env):
         self.done = False
         self.truncated = False
         # 定义无人机的动作空间和观测空间
-        self.action_space = spaces.Box(low=np.array([-0.35, -0.35, -0.35, 0] * self.uav_num),
-                                       high=np.array([0.35, 0.35, 0.35, 1] * self.uav_num), dtype=np.float32)
-        self.observation_space = spaces.Box(low=np.array([0, 0, 0, -1, -1, -1, 0] * self.uav_num),
-                                            high=np.array([self.map_w, self.map_h, self.map_z, 1, 1, 1, 1] *
+        self.action_space = spaces.Box(low=np.array([-0.35, -0.35, -0.35] * self.uav_num),
+                                       high=np.array([0.35, 0.35, 0.35] * self.uav_num), dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array([0, 0, 0, -0.35, -0.35, -0.35] * self.uav_num),
+                                            high=np.array([self.map_w, self.map_h, self.map_z, 0.35, 0.35, 0.35] *
                                                           self.uav_num), dtype=np.float32)
 
     # 记录无人机的飞行轨迹函数
@@ -46,22 +46,17 @@ class UAVEnv(gym.Env):
                 self.position_pool[i].append(position)
 
     # 无人机的动作更新函数
-    def step(self, actions, env_t):
-        actions = np.array(actions).reshape(self.uav_num, 4)
+    def step(self, actions):
         for i in range(self.uav_num):
             # update state x，y，z位置更新为原来的加上偏移量；vx，vy，vz更新，
             self.state[i][0] += actions[i][0]  # uav_x = vx*t, suppose t=1
             self.state[i][1] += actions[i][1]  # uav_y = vy*t
             self.state[i][2] += actions[i][2]  # uav_z = vz*t
             self.state[i][3:6] = actions[i][:3]  # update vx, vy, vz
-            self.state[i][6] = actions[i][3]  # update sensor status
-
-
-
         return self.state, self.r, self.done, self.truncated, self.info
 
     def reset(self):
-        self.state = np.zeros((self.uav_num, 7), dtype=np.float32)
+        self.state = np.zeros((self.uav_num, 6), dtype=np.float32)
         return self.state, self.info
 
 
