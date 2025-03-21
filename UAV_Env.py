@@ -30,6 +30,7 @@ class UAVEnv(gym.Env):
         self.r = 0
         self.done = False
         self.truncated = False
+        self.env_t = 0
         # 定义无人机的动作空间和观测空间
         self.action_space = spaces.Box(low=np.array([-0.35, -0.35, -0.35] * self.uav_num),
                                        high=np.array([0.35, 0.35, 0.35] * self.uav_num), dtype=np.float32)
@@ -53,10 +54,17 @@ class UAVEnv(gym.Env):
             self.state[i][1] += actions[i][1]  # uav_y = vy*t
             self.state[i][2] += actions[i][2]  # uav_z = vz*t
             self.state[i][3:6] = actions[i][:3]  # update vx, vy, vz
+            self.env_t += 1
         return self.state, self.r, self.done, self.truncated, self.info
 
     def reset(self):
-        self.state = np.zeros((self.uav_num, 6), dtype=np.float32)
+        self.state =[[3, 7, 0, 0, 0, 0],
+                   [0, 7, 0, 0, 0, 0],
+                   [0, 10, 0, 0, 0, 0]]
+        self.r = 0
+        self.done = False
+        self.truncated = False
+        self.env_t = 0
         return self.state, self.info
 
 
