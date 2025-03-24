@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import collections
 import random
-
+import matplotlib.pyplot as plt
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -15,7 +15,7 @@ class ReplayBuffer:
     def sample(self, batch_size):
         transitions = random.sample(self.buffer, batch_size)
         state, action, reward, next_state, done = zip(*transitions)
-        return np.array(state), action, reward, np.array(next_state), done
+        return np.array(state), np.array(action), reward, np.array(next_state), done
 
     def size(self):
         return len(self.buffer)
@@ -59,7 +59,7 @@ def train_on_policy_agent(env, agent, num_episodes):
     return return_list
 
 
-def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size):
+def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size, render):
     return_list = []
     for i in range(10):
         with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
@@ -71,9 +71,13 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
                 while not (done or truncated):
                     action = agent.take_action(state)
                     next_state, reward, done, truncated, _ = env.step(action)
+                    env_t = env.timestamp()
+                    env.recorder(env_t)
+                    render.render3D()
+                    plt.pause(0.01)
                     replay_buffer.add(state, action, reward, next_state, done)
                     state = next_state
-                    episode_return += reward
+                    episode_return += np.mean(reward)
                     if replay_buffer.size() > minimal_size:
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
                         transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,

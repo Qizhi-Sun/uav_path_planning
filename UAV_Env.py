@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import math
+
+from sympy.integrals.intpoly import distance_to_side
+
 from building_data import *
 from UAV_and_Final_data import *
 from matplotlib.image import imread
@@ -14,7 +17,9 @@ import matplotlib.style as mplstyle
 
 
 mplstyle.use('fast')
-
+x_goal = match_pairs_WH[0][2][0]
+y_goal = match_pairs_WH[0][2][1]
+z_goal = match_pairs_WH[0][2][2]
 
 # 初始化无人机环境
 class UAVEnv(gym.Env):
@@ -27,20 +32,21 @@ class UAVEnv(gym.Env):
         self.position_pool = [[] for _ in range(self.uav_num)]
         self.state = Init_state
         self.info = 'success'
-        self.r = 0
+        self.r = [0 for _ in range(self.uav_num)]
         self.done = False
         self.truncated = False
         self.env_t = 0
         # 定义无人机的动作空间和观测空间
-        self.action_space = spaces.Box(low=np.array([-0.35, -0.35, -0.35] * self.uav_num),
-                                       high=np.array([0.35, 0.35, 0.35] * self.uav_num), dtype=np.float32)
-        self.observation_space = spaces.Box(low=np.array([0, 0, 0, -0.35, -0.35, -0.35] * self.uav_num),
-                                            high=np.array([self.map_w, self.map_h, self.map_z, 0.35, 0.35, 0.35] *
+        self.action_space = spaces.Box(low=np.array([-0.2, -0.2, -0.2] * self.uav_num),
+                                       high=np.array([0.2, 0.2, 0.2] * self.uav_num), dtype=np.float32)
+        # 状态包括x y z vx vy vz xg yg zg o
+        self.observation_space = spaces.Box(low=np.array([0, 0, 0, -1, -1, -1, 0, 0, 0, 0] * self.uav_num),
+                                            high=np.array([self.map_w, self.map_h, self.map_z, 1, 1, 1, self.map_w, self.map_h, self.map_z, 1] *
                                                           self.uav_num), dtype=np.float32)
 
     # 记录无人机的飞行轨迹函数
     def recorder(self, env_t):
-        if env_t % 2 == 0:
+        if env_t % 2 == 1:
             for i in range(self.uav_num):
                 x, y, z = self.state[i][:3]
                 position = [x, y, z, env_t]
@@ -48,25 +54,111 @@ class UAVEnv(gym.Env):
 
     # 无人机的动作更新函数
     def step(self, actions):
+        agent1_to_agent0 = [0 for _ in range(self.uav_num - 1)]
+        r_distance = 0
+        r_distance_change = 0
+        self.env_t += 1
+        last_distance = 0
         for i in range(self.uav_num):
-            # update state x，y，z位置更新为原来的加上偏移量；vx，vy，vz更新，
-            self.state[i][0] += actions[i][0]  # uav_x = vx*t, suppose t=1
-            self.state[i][1] += actions[i][1]  # uav_y = vy*t
-            self.state[i][2] += actions[i][2]  # uav_z = vz*t
-            self.state[i][3:6] = actions[i][:3]  # update vx, vy, vz
-            self.env_t += 1
+            last_v = self.state[i][3:6]  # 记录旧速度
+            self.state[i][3:6] += actions[i][:3]  # update vx, vy, vz
+            self.state[i][3:6] = np.clip(self.state[i][3:6], -1, 1)
+            if i == 0:
+                last_distance = math.hypot(x_goal - self.state[i][0], y_goal - self.state[i][1], z_goal - self.state[i][2])
+            self.state[i][0] += ( last_v[0] + self.state[i][3]) / 2   # uav_x = vx*t, suppose t=1
+            self.state[i][1] += ( last_v[1] + self.state[i][4]) / 2  # uav_y = vy*t
+            self.state[i][2] += ( last_v[2] + self.state[i][5]) / 2 # uav_z = vz*t
+            if i == 0:
+                x_diff = abs(self.state[i][0]-x_goal)
+                y_diff = abs(self.state[i][1]-y_goal)
+                z_diff = abs(self.state[i][2]-z_goal)
+                self.state[i][6] = x_diff
+                self.state[i][7] = y_diff
+                self.state[i][8] = z_diff
+                distance_to_goal = math.sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2 )
+
+                # r_distance
+                if distance_to_goal <= 5:
+                    r_distance = 1000
+                    self.done = True
+                else:
+                    r_distance = -distance_to_goal * 0.05
+
+                # r_distance_change
+                distance_change =  last_distance - distance_to_goal
+                r_distance_change = distance_change * 2
+
+
+            else:
+                self.state[i][6] = self.state[0][0]
+                self.state[i][7] = self.state[0][1]
+                self.state[i][8] = self.state[0][2]
+                dis1 = abs(self.state[i][0]-self.state[i][6])
+                dis2 = abs(self.state[i][1]-self.state[i][7])
+                dis3 = abs(self.state[i][2]-self.state[i][8])
+                agent1_to_agent0[i-1] = math.sqrt(dis1 ** 2 + dis2 ** 2 + dis3 ** 2 )
+
+        # r_edge
+        if not(0<=self.state[0][0]<=50 and 0<=self.state[0][1]<=50 and 0<=self.state[0][2]<=5):
+            r_edge = -1
+        else:
+            r_edge = 1
+
+        # r_team_keep
+        if agent1_to_agent0[0] >= 5 or agent1_to_agent0[1] >= 5:
+            r_team_keep = -0.01 * (agent1_to_agent0[0] + agent1_to_agent0[1] )
+        else:
+            r_team_keep = 2
+        if agent1_to_agent0[0] >= 5:
+            r_team_keep_1 = -0.01 * agent1_to_agent0[0]
+        else:
+            r_team_keep_1 = 1
+        if agent1_to_agent0[1] >= 5:
+            r_team_keep_2 = -0.01 * agent1_to_agent0[1]
+        else:
+            r_team_keep_2 = 1
+
+        # r_speed
+        x_speed_diff_1 = self.state[0][3] - self.state[1][3]
+        y_speed_diff_1 = self.state[0][4] - self.state[1][4]
+        z_speed_diff_1 = self.state[0][5] - self.state[1][5]
+        x_speed_diff_2 = self.state[0][3] - self.state[2][3]
+        y_speed_diff_2 = self.state[0][4] - self.state[2][4]
+        z_speed_diff_2 = self.state[0][5] - self.state[2][5]
+        speed_diff_1 = math.hypot(x_speed_diff_1, y_speed_diff_1, z_speed_diff_1)
+        speed_diff_2 = math.hypot(x_speed_diff_2, y_speed_diff_2, z_speed_diff_2)
+        if speed_diff_1 >= 2:
+            r_speed_1 = -0.1 * speed_diff_1
+        else:
+            r_speed_1 = 1
+
+        if speed_diff_2 >= 2:
+            r_speed_2 = -0.1 * speed_diff_2
+        else:
+            r_speed_2 = 1
+
+        r_speed = r_speed_1 + r_speed_2
+        self.r[0] =  r_speed + r_team_keep +r_edge + r_distance_change
+        self.r[1] = r_team_keep_1 + r_speed_1
+        self.r[2] = r_team_keep_2 + r_speed_2
+
+        if self.env_t >= 50:
+            self.truncated = True
+
         return self.state, self.r, self.done, self.truncated, self.info
 
     def reset(self):
-        self.state =[[3, 7, 0, 0, 0, 0],
-                   [0, 7, 0, 0, 0, 0],
-                   [0, 10, 0, 0, 0, 0]]
-        self.r = 0
+        self.state =[[0, 0, 0, 0, 0, 0, x_goal, y_goal, z_goal, 0],
+                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+        self.r = [0 for _ in range(self.uav_num)]
         self.done = False
         self.truncated = False
         self.env_t = 0
         return self.state, self.info
 
+    def timestamp(self):
+        return self.env_t
 
 # 画面渲染函数，使用matplotlib库绘制地图、障碍物、无人机
 class Render:
@@ -144,10 +236,21 @@ class Render:
         plt.ion()
         for i in range(self.uav_num):
             x_traj, y_traj, z_traj, _ = zip(*self.position_pool[i])
-            l = self.ax.plot(x_traj[-10:], y_traj[-10:], z_traj[-10:], color='gray', alpha=0.7, linewidth=2.0)
-            self.line.append(l)
-            head = self.ax.scatter(x_traj[-1], y_traj[-1], z_traj[-1], color='darkorange', s=30)
-            self.Head.append(head)
+            if i == 0:
+                l = self.ax.plot(x_traj[-10:], y_traj[-10:], z_traj[-10:], color='gray', alpha=0.7, linewidth=2.0)
+                self.line.append(l)
+                head = self.ax.scatter(x_traj[-1], y_traj[-1], z_traj[-1], color='darkorange', s=30)
+                self.Head.append(head)
+            if i == 1:
+                l = self.ax.plot(x_traj[-10:], y_traj[-10:], z_traj[-10:], color='gray', alpha=0.7, linewidth=2.0)
+                self.line.append(l)
+                head = self.ax.scatter(x_traj[-1], y_traj[-1], z_traj[-1], color='deepskyblue', s=30)
+                self.Head.append(head)
+            if i == 2:
+                l = self.ax.plot(x_traj[-10:], y_traj[-10:], z_traj[-10:], color='gray', alpha=0.7, linewidth=2.0)
+                self.line.append(l)
+                head = self.ax.scatter(x_traj[-1], y_traj[-1], z_traj[-1], color='gray', s=30)
+                self.Head.append(head)
         # 更新轨迹和无人机本体位置
         while len(self.line) > self.uav_num:
             old_line = self.line.pop(0)
