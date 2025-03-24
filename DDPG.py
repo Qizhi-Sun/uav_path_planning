@@ -89,15 +89,9 @@ class DDPG:
         state_1 = torch.tensor(state[0], dtype=torch.float).to(self.device)
         state_2 = torch.tensor(state[1], dtype=torch.float).to(self.device)
         state_3 = torch.tensor(state[2], dtype=torch.float).to(self.device)
-        if 15000<= self.counter <= 20000:
-            action1 = self.control.Move_to(state_1.cpu().numpy(), [13, 34, 2.3])
-            action2 = self.control.Move_to(state_2.cpu().numpy(), [13, 34, 2.3])
-            action3 = self.control.Move_to(state_3.cpu().numpy(), [13, 34, 2.3])
-        else:
-            action1 = self.actor(state_1).detach().cpu().numpy()
-            action2 = self.actor_1(state_2).detach().cpu().numpy()
-            action3 = self.actor_2(state_3).detach().cpu().numpy()
-
+        action1 = self.actor(state_1).detach().cpu().numpy()
+        action2 = self.actor_1(state_2).detach().cpu().numpy()
+        action3 = self.actor_2(state_3).detach().cpu().numpy()
         action1 = action1 + self.sigma * np.random.randn(self.action_dim)
         action2 = action2 + self.sigma * np.random.randn(self.action_dim)
         action3 = action3 + self.sigma * np.random.randn(self.action_dim)
