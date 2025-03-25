@@ -79,8 +79,8 @@ class DDPG:
         self.critic_target_2 = QValueNet(state_dim, hidden_dim, action_dim, UAV_num).to(device)
         self.actor_target_2.load_state_dict(self.actor_2.state_dict())
         self.critic_target_2.load_state_dict(self.critic_2.state_dict())
-        self.actor_opt_2 = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
-        self.critic_opt_2 = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
+        self.actor_opt_2 = torch.optim.Adam(self.actor_2.parameters(), lr=actor_lr)
+        self.critic_opt_2 = torch.optim.Adam(self.critic_2.parameters(), lr=critic_lr)
 
         self.control = con
         self.counter = 0
