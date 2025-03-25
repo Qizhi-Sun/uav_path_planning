@@ -134,9 +134,6 @@ class DDPG:
         self.soft_update(self.actor, self.actor_target)  # 软更新策略网络
         self.soft_update(self.critic, self.critic_target)  # 软更新价值网络
 
-
-
-
         # next_actions_1 = self.actor_target_1(next_states[:,1,:])
         # next_q_value_1 = self.critic_target_1(next_states.reshape(64, 30), next_actions_1)
         # q_targets_1 = rewards[:,1].view(64,1) + self.gamma * next_q_value_1 * (1 - dones)
