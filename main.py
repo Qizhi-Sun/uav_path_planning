@@ -6,13 +6,13 @@ def main():
     actor_lr = 1e-3
     critic_lr = 3e-4
     num_episodes = 1000
-    hidden_dim = 128
+    hidden_dim = 64
     gamma = 0.98
     tau = 0.005  # 软更新参数
     buffer_size = 10000
     minimal_size = 300
     batch_size = 64
-    sigma = 0.01  # 正态分布噪声幅度
+    sigma = 0.05  # 正态分布噪声幅度
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     np.random.seed(42)
     torch.manual_seed(42)
@@ -38,10 +38,15 @@ def main():
     render = Render(uav_num, env.state, buildings, map_w, map_h, map_z, uav_r, env.position_pool, match_pairs)
     # 开始
     return_list = rl_utils.train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size, render)
+    # return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes,
+    #                                               render)
     # agent.save_pth()
     plt.figure(3)
     episodes_list = list(range(len(return_list)))
-    plt.plot(episodes_list, return_list)
+    plt.plot(episodes_list, return_list[:, 0], color='red', label='Leader')
+    plt.plot(episodes_list, return_list[:, 1], color='blue', label='Follower1')
+    plt.plot(episodes_list, return_list[:, 2], color='green', label='Follower2')
+    plt.legend()
     plt.xlabel('Episodes')
     plt.ylabel('Returns')
     plt.title('MADDPG on {}'.format(Map_name))

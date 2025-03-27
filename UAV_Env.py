@@ -58,13 +58,10 @@ class UAVEnv(gym.Env):
         r_distance = 0
         r_distance_change = 0
         self.env_t += 1
-        last_distance = 0
         for i in range(self.uav_num):
             last_v = self.state[i][3:6]  # 记录旧速度
             self.state[i][3:6] += actions[i][:3]  # update vx, vy, vz
-            self.state[i][3:6] = np.clip(self.state[i][3:6], -1, 1)
-            if i == 0:
-                last_distance = math.hypot(x_goal - self.state[i][0], y_goal - self.state[i][1], z_goal - self.state[i][2])
+            self.state[i][3:6] = np.clip(self.state[i][3:6], -0.6, 0.6)
             self.state[i][0] += ( last_v[0] + self.state[i][3]) / 2   # uav_x = vx*t, suppose t=1
             self.state[i][1] += ( last_v[1] + self.state[i][4]) / 2  # uav_y = vy*t
             self.state[i][2] += ( last_v[2] + self.state[i][5]) / 2 # uav_z = vz*t
@@ -72,21 +69,24 @@ class UAVEnv(gym.Env):
                 x_diff = abs(self.state[i][0]-x_goal)
                 y_diff = abs(self.state[i][1]-y_goal)
                 z_diff = abs(self.state[i][2]-z_goal)
+                last_distance = math.hypot(x_goal - self.state[i][6], y_goal - self.state[i][7],
+                                           z_goal - self.state[i][8])
                 self.state[i][6] = x_diff
                 self.state[i][7] = y_diff
                 self.state[i][8] = z_diff
-                distance_to_goal = math.sqrt(x_diff ** 2 + y_diff ** 2 + z_diff ** 2 )
+                distance_to_goal = math.hypot(x_diff, y_diff, z_diff)
 
                 # r_distance
                 if distance_to_goal <= 5:
                     r_distance = 50
                     self.done = True
+                    print("********************!!! Leader UAV have been final  !!!*****************")
                 else:
                     r_distance = -distance_to_goal * 0.01
 
                 # r_distance_change
                 distance_change =  last_distance - distance_to_goal
-                r_distance_change = distance_change * 0.01
+                r_distance_change = distance_change * 1
 
 
             else:
@@ -127,22 +127,23 @@ class UAVEnv(gym.Env):
         z_speed_diff_2 = self.state[0][5] - self.state[2][5]
         speed_diff_1 = math.hypot(x_speed_diff_1, y_speed_diff_1, z_speed_diff_1)
         speed_diff_2 = math.hypot(x_speed_diff_2, y_speed_diff_2, z_speed_diff_2)
-        if speed_diff_1 >= 2:
+        if speed_diff_1 >= 1:
             r_speed_1 = -0.01 * speed_diff_1
         else:
             r_speed_1 = 1
 
-        if speed_diff_2 >= 2:
+        if speed_diff_2 >= 1:
             r_speed_2 = -0.01 * speed_diff_2
         else:
             r_speed_2 = 1
 
         r_speed = r_speed_1 + r_speed_2
-        self.r[0] =  r_edge + r_distance_change + r_distance + r_team_keep + r_speed
+
+        self.r[0] =  r_edge * 0.1 + r_distance_change * 0.01 + r_distance + r_team_keep * 0.01 + r_speed * 0.01
         self.r[1] = r_team_keep_1 + r_speed_1
         self.r[2] = r_team_keep_2 + r_speed_2
 
-        if self.env_t >= 100:
+        if self.env_t >= 50:
             self.truncated = True
 
         return self.state, self.r, self.done, self.truncated, self.info
