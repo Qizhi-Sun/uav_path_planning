@@ -51,8 +51,9 @@ def main():
     plt.ylabel('Returns')
     plt.title('MADDPG on {}'.format(Map_name))
     plt.show(block = True)
+
+    # test block
     # agent.load_para()
-    # test
     # for i in range(test_episode):
     #     state, _ = env.reset()
     #     for j in range(test_time_step):

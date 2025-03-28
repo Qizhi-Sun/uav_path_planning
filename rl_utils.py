@@ -5,6 +5,8 @@ import collections
 import random
 import matplotlib.pyplot as plt
 
+# 常用中间件 包括经验回放池 离线、在线训练流程 A值计算 数据平滑处理
+
 class ReplayBuffer:
     def __init__(self, capacity):
         self.buffer = collections.deque(maxlen=capacity)
