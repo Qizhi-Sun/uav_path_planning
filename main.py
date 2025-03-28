@@ -3,6 +3,9 @@ from UAV_Env import *
 from DDPG import *
 from rl_utils import *
 def main():
+    """
+    参数初始化
+    """
     actor_lr = 1e-3
     critic_lr = 3e-4
     num_episodes = 1000
@@ -23,6 +26,10 @@ def main():
     action_bound = 0.2 # 动作最大值
     # test_episode = 50
     # test_time_step = 150
+
+    """
+    模块初始化
+    """
     # 创建环境名
     Map_name = 'Map1'
     # 初始化MAP模块
@@ -36,11 +43,19 @@ def main():
     agent = DDPG(state_dim, hidden_dim, action_dim, UAV_num, action_bound, sigma, actor_lr, critic_lr, tau, gamma, device, con)
     # 初始化render
     render = Render(uav_num, env.state, buildings, map_w, map_h, map_z, uav_r, env.position_pool, match_pairs)
+
+    """
+    训练开始
+    """
     # 开始
     return_list = rl_utils.train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size, render)
     # return_list = rl_utils.train_on_policy_agent(env, agent, num_episodes,
     #                                               render)
     # agent.save_pth()
+
+    """
+    绘制return图
+    """
     plt.figure(3)
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list[:, 0], color='red', label='Leader')
