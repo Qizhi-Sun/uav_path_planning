@@ -67,6 +67,9 @@ def main():
     plt.title('MADDPG on {}'.format(Map_name))
     plt.show(block = True)
 
+    """
+    测试模块
+    """
     # test block
     # agent.load_para()
     # for i in range(test_episode):
