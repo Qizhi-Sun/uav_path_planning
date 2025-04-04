@@ -7,9 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import math
-
 from sympy.integrals.intpoly import distance_to_side
-
 from building_data import *
 from UAV_and_Final_data import *
 from matplotlib.image import imread
@@ -62,33 +60,32 @@ class UAVEnv(gym.Env):
             last_v = self.state[i][3:6]  # 记录旧速度
             self.state[i][3:6] += actions[i][:3]  # update vx, vy, vz
             self.state[i][3:6] = np.clip(self.state[i][3:6], -0.6, 0.6)
-            self.state[i][0] += ( last_v[0] + self.state[i][3]) / 2   # uav_x = vx*t, suppose t=1
-            self.state[i][1] += ( last_v[1] + self.state[i][4]) / 2  # uav_y = vy*t
-            self.state[i][2] += ( last_v[2] + self.state[i][5]) / 2 # uav_z = vz*t
+            self.state[i][0] += ( last_v[0] + self.state[i][3]) / 2   # uav_x = (vx + vx_last) / 2 * t
+            self.state[i][1] += ( last_v[1] + self.state[i][4]) / 2  # uav_y = (vy + vy_last) / 2 * t
+            self.state[i][2] += ( last_v[2] + self.state[i][5]) / 2 # uav_z = (vz + vz_last) / 2 * t
             if i == 0:
                 x_diff = abs(self.state[i][0]-x_goal)
                 y_diff = abs(self.state[i][1]-y_goal)
                 z_diff = abs(self.state[i][2]-z_goal)
-                last_distance = math.hypot(x_goal - self.state[i][6], y_goal - self.state[i][7],
-                                           z_goal - self.state[i][8])
+                last_distance = math.hypot(self.state[i][6], self.state[i][7],
+                                           self.state[i][8])
                 self.state[i][6] = x_diff
                 self.state[i][7] = y_diff
                 self.state[i][8] = z_diff
                 distance_to_goal = math.hypot(x_diff, y_diff, z_diff)
 
                 # r_distance
-                if distance_to_goal <= 5:
+                if distance_to_goal <= 8:
                     r_distance = 50
                     self.done = True
                     print("********************!!! Leader UAV have been final  !!!*****************")
                 else:
-                    r_distance = -distance_to_goal * 0.01
+                    r_distance = 0
 
                 # r_distance_change
                 distance_change =  last_distance - distance_to_goal
                 r_distance_change = distance_change * 1
-
-
+                # print(r_distance_change)
             else:
                 self.state[i][6] = self.state[0][0]
                 self.state[i][7] = self.state[0][1]
@@ -106,7 +103,7 @@ class UAVEnv(gym.Env):
 
         # r_team_keep
         if agent1_to_agent0[0] >= 5 or agent1_to_agent0[1] >= 5:
-            r_team_keep = -0.01 * (agent1_to_agent0[0] + agent1_to_agent0[1] )
+            r_team_keep = -0.01 * (agent1_to_agent0[0] + agent1_to_agent0[1])
         else:
             r_team_keep = 2
         if agent1_to_agent0[0] >= 5:
@@ -139,11 +136,12 @@ class UAVEnv(gym.Env):
 
         r_speed = r_speed_1 + r_speed_2
 
-        self.r[0] =  r_edge * 0.1 + r_distance_change * 0.01 + r_distance + r_team_keep * 0.01 + r_speed * 0.01
+        # self.r[0] =  r_edge * 0.01 + r_distance_change + r_distance + r_team_keep * 0.01 + r_speed * 0.01
+        self.r[0] = r_distance_change + r_distance
         self.r[1] = r_team_keep_1 + r_speed_1
         self.r[2] = r_team_keep_2 + r_speed_2
 
-        if self.env_t >= 50:
+        if self.env_t >= 60:
             self.truncated = True
 
         return self.state, self.r, self.done, self.truncated, self.info

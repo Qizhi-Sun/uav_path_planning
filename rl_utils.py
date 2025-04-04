@@ -95,7 +95,7 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
                 if (i_episode + 1) % 10 == 0:
                     return_list_1 = np.array(return_list)
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
-                                      'return_0': '%.3f' % np.mean(return_list_1[-11:-1,0]),
+                                      'return_0': '%.3f' % np.mean(return_list_1[-11:-1, 0]),
                                       'return_1': '%.3f' % np.mean(return_list_1[-11:-1, 1]),
                                       'return_2': '%.3f' % np.mean(return_list_1[-11:-1, 2])
                                       })

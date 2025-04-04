@@ -84,15 +84,15 @@ class DDPG:
         state_2 = torch.tensor(state[1], dtype=torch.float).to(self.device)
         state_3 = torch.tensor(state[2], dtype=torch.float).to(self.device)
         if self.counter <= -1: # 考虑用先验知识加速实验（直奔终点） 试用后无效果 还是效果很差 暂时不启用了
-            action1 = self.control.Move_to(state_1.detach().cpu().numpy(), [13,34,2.3])
-            action2 = self.control.Move_to(state_2.detach().cpu().numpy(), [13,34,2.3])
-            action3 = self.control.Move_to(state_3.detach().cpu().numpy(), [13,34,2.3])
+            action1 = self.control.Move_to(state_1.detach().cpu().numpy(), [13,34,5])
+            action2 = self.control.Move_to(state_2.detach().cpu().numpy(), [13,34,5])
+            action3 = self.control.Move_to(state_3.detach().cpu().numpy(), [13,34,5])
         else:
             action1 = self.actor(state_1).detach().cpu().numpy()
             action2 = self.actor_1(state_2).detach().cpu().numpy()
             action3 = self.actor_2(state_3).detach().cpu().numpy()
 
-        if self.counter <= 10000: # 前10000步增加探索力度 后面回归正常
+        if self.counter <= -1: # 前10000步增加探索力度 后面回归正常
             action1 = action1 + 0.1 * np.random.randn(self.action_dim)
             action2 = action2 + 0.1 * np.random.randn(self.action_dim)
             action3 = action3 + 0.1 * np.random.randn(self.action_dim)
@@ -126,7 +126,7 @@ class DDPG:
         # 检查critic梯度
         # for name, param in self.critic.named_parameters():
         #     if param.grad is not None:
-        #         print(f"critic layername : {name},  actor's grad is :{param.grad.norm()}")
+        #         print(f"critic layername : {name},  critic's grad is :{param.grad.norm()}")
         #     else:
         #         print("None")
 
